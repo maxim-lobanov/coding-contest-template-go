@@ -1,0 +1,1 @@
+# coding-contest-template-go
