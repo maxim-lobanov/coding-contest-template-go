@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -e
+
+NEW_TASK_NAME="$1"
+
+SCRIPT_DIRECTORY=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
+TEMPLATE_PATH="$SCRIPT_DIRECTORY/tasks/template"
+NEW_TASK_PATH="$SCRIPT_DIRECTORY/tasks/$NEW_TASK_NAME"
+
+echo "Copying $TEMPLATE_PATH -> $NEW_TASK_PATH"
+
+NEW_TASK_PARENT_DIR=$(dirname $NEW_TASK_PATH)
+mkdir -p $NEW_TASK_PARENT_DIR
+cp -r $TEMPLATE_PATH $NEW_TASK_PATH
