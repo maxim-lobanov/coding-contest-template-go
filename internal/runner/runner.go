@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,12 +12,10 @@ import (
 type SolutionFunc func(input []string) string
 
 func Execute(t *testing.T, solutionFn SolutionFunc) {
-	solutionPath, solutionRelativePath, err := getSolutionPath()
+	solutionPath, err := getSolutionPath()
 	if err != nil {
 		t.Fatalf("error getting solution path: %v", err)
 	}
-
-	t.Logf("Solution path: %s", solutionRelativePath)
 
 	executeTests(t, solutionFn, solutionPath)
 
@@ -36,8 +35,7 @@ func executeMain(t *testing.T, solutionFn SolutionFunc, solutionPath string) {
 		defer enableRecovery(t)
 		actualOutput := solutionFn(input)
 
-		t.Log("Result for main input:")
-		t.Log(actualOutput)
+		fmt.Printf("\tRESULT: %s\n", actualOutput)
 		assert.NotEmpty(t, actualOutput)
 	})
 }

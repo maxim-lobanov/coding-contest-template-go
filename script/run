@@ -23,4 +23,16 @@ fi
 
 # Run tests
 cd "$SOLUTION_DIR"
-go test -v .
+
+# Run tests and colorize output
+set +e
+go test -v . 2>&1 | sed -E \
+    -e "s/^=== RUN.*/$(printf '\033[36m')&$(printf '\033[0m')/" \
+    -e "s/^[[:space:]]*--- PASS.*/$(printf '\033[32m')&$(printf '\033[0m')/" \
+    -e "s/^[[:space:]]*--- FAIL.*/$(printf '\033[31m')&$(printf '\033[0m')/" \
+    -e "s/^[[:space:]]*RESULT:.*/$(printf '\033[34m')&$(printf '\033[0m')/" \
+    -e "s/^PASS$/$(printf '\033[32m')&$(printf '\033[0m')/" \
+    -e "s/^FAIL.*/$(printf '\033[31m')&$(printf '\033[0m')/" \
+    -e "s/^ok .*/$(printf '\033[32m')&$(printf '\033[0m')/"
+
+exit ${PIPESTATUS[0]}
