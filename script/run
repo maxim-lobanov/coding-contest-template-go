@@ -1,0 +1,26 @@
+#!/bin/bash -e
+
+# Determine solution directory
+if [ -n "$1" ]; then
+    # Get the directory where the script is located
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+
+    # Path provided as argument
+    SOLUTION_DIR="$REPO_ROOT/$1"
+else
+    # No path provided, use current working directory
+    SOLUTION_DIR="$(pwd)"
+fi
+
+# Resolve to absolute path
+SOLUTION_DIR="$(cd "$SOLUTION_DIR" && pwd)"
+
+# Check if main_test.go exists
+if [ ! -f "$SOLUTION_DIR/main_test.go" ]; then
+    echo "ERROR: main_test.go not found in $SOLUTION_DIR"
+    exit 1
+fi
+
+# Run tests
+cd "$SOLUTION_DIR"
+go test -v .

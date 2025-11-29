@@ -1,9 +1,18 @@
 package cast
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
+
+func ToPtr[T any](value T) *T {
+	return &value
+}
+
+func ToString[T any](value T) string {
+	return fmt.Sprintf("%v", value)
+}
 
 func ParseInt(s string) int {
 	res, err := strconv.ParseInt(s, 10, 64)
@@ -34,16 +43,6 @@ func ParseIntArray(s string) []int {
 	result := make([]int, len(parts))
 	for i, part := range parts {
 		result[i] = ParseInt(part)
-	}
-
-	return result
-}
-
-func ParseInt64Array(s string) []int64 {
-	parts := strings.Split(s, " ")
-	result := make([]int64, len(parts))
-	for i, part := range parts {
-		result[i] = ParseInt64(part)
 	}
 
 	return result

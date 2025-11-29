@@ -8,19 +8,19 @@ import (
 )
 
 func readMainInputFile(solutionFolder string) ([]string, error) {
-	inputFilePath := filepath.Join(solutionFolder, "main.txt")
+	inputFilePath := filepath.Join(solutionFolder, "input.txt")
 
 	if _, err := os.Stat(inputFilePath); err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("input file does not exist: %s", inputFilePath)
+			return nil, fmt.Errorf("error reading input file: file does not exist: %s", inputFilePath)
 		} else {
-			return nil, fmt.Errorf("failed to check file stats: %v", err)
+			return nil, fmt.Errorf("error checking file stats: %w", err)
 		}
 	}
 
 	inputFileRaw, err := os.ReadFile(inputFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file content: %v", err)
+		return nil, fmt.Errorf("error reading file content: %w", err)
 	}
 
 	inputLines := strings.Split(string(inputFileRaw), "\n")
@@ -28,18 +28,28 @@ func readMainInputFile(solutionFolder string) ([]string, error) {
 	return inputLines, nil
 }
 
+func findAllTestFiles(solutionFolder string) ([]string, error) {
+	testPattern := filepath.Join(solutionFolder, "sample_*.txt")
+	testFiles, err := filepath.Glob(testPattern)
+	if err != nil {
+		return nil, fmt.Errorf("error listing files by glob: %w", err)
+	}
+
+	return testFiles, nil
+}
+
 func readTestFile(testFilePath string) ([]string, string, error) {
 	if _, err := os.Stat(testFilePath); err != nil {
 		if os.IsNotExist(err) {
-			return nil, "", fmt.Errorf("test file does not exist: %s", testFilePath)
+			return nil, "", fmt.Errorf("error reading test file: file does not exist: %s", testFilePath)
 		} else {
-			return nil, "", fmt.Errorf("failed to check file stats: %v", err)
+			return nil, "", fmt.Errorf("error checking file stats: %w", err)
 		}
 	}
 
 	testFileRaw, err := os.ReadFile(testFilePath)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to read file content: %v", err)
+		return nil, "", fmt.Errorf("error reading file content: %w", err)
 	}
 
 	testFileLines := strings.Split(string(testFileRaw), "\n")
@@ -54,13 +64,13 @@ func readTestFile(testFilePath string) ([]string, string, error) {
 	}
 
 	if separatorLineIndex == -1 {
-		return nil, "", fmt.Errorf("invalid test file format: missing separator line")
+		return nil, "", fmt.Errorf("error parsing test file: missing separator line")
 	}
 	if separatorLineIndex < 1 {
-		return nil, "", fmt.Errorf("invalid test file format: no input lines found")
+		return nil, "", fmt.Errorf("error parsing test file: no input lines found")
 	}
 	if separatorLineIndex+1 >= testFilesLinesCount {
-		return nil, "", fmt.Errorf("invalid test file format: missing expected output line")
+		return nil, "", fmt.Errorf("error parsing test file: missing expected output line")
 	}
 
 	testInputLines := testFileLines[:separatorLineIndex]
@@ -70,5 +80,5 @@ func readTestFile(testFilePath string) ([]string, string, error) {
 }
 
 func isTestSeparatorLine(line string) bool {
-	return len(line) > 0 && strings.HasPrefix(line, "=") && strings.HasSuffix(line, "=") && strings.Trim(line, "=") == ""
+	return line == "---OUTPUT---"
 }
