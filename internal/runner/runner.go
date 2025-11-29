@@ -13,7 +13,7 @@ type SolutionFunc func(input []string) string
 func Execute(t *testing.T, solutionFn SolutionFunc) {
 	solutionPath, solutionRelativePath, err := getSolutionPath()
 	if err != nil {
-		t.Fatalf("error getting solution path: %w", err)
+		t.Fatalf("error getting solution path: %v", err)
 	}
 
 	t.Logf("Solution path: %s", solutionRelativePath)
@@ -30,7 +30,7 @@ func executeMain(t *testing.T, solutionFn SolutionFunc, solutionPath string) {
 	t.Run("main", func(t *testing.T) {
 		input, err := readMainInputFile(solutionPath)
 		if err != nil {
-			t.Fatalf("error reading main input file: %w", err)
+			t.Fatalf("error reading main input file: %v", err)
 		}
 
 		defer enableRecovery(t)
@@ -45,7 +45,7 @@ func executeMain(t *testing.T, solutionFn SolutionFunc, solutionPath string) {
 func executeTests(t *testing.T, solutionFn SolutionFunc, solutionPath string) {
 	testFiles, err := findAllTestFiles(solutionPath)
 	if err != nil {
-		t.Fatalf("error finding test files: %w", err)
+		t.Fatalf("error finding test files: %v", err)
 	}
 
 	if len(testFiles) == 0 {
@@ -57,7 +57,7 @@ func executeTests(t *testing.T, solutionFn SolutionFunc, solutionPath string) {
 		t.Run(testName, func(t *testing.T) {
 			testInput, expectedOutput, err := readTestFile(testFile)
 			if err != nil {
-				t.Fatalf("error reading test file: %w", err)
+				t.Fatalf("error reading test file: %v", err)
 			}
 
 			defer enableRecovery(t)
