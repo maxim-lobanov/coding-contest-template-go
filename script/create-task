@@ -1,0 +1,90 @@
+#!/bin/bash
+
+set -e
+
+usage() {
+    cat << EOF
+
+Usage: script/create-task TASK_NAME [--from SOURCE_TASK]
+
+Generate a new coding contest task.
+
+Arguments:
+  TASK_NAME           Name of the new task (e.g., "1A", "2B")
+  --from SOURCE_TASK  Copy from existing task instead of template (optional)
+
+Examples:
+  gen 1A              # Create tasks/1A from tasks/template
+  gen 1B --from 1A    # Create tasks/1B from tasks/1A
+
+EOF
+}
+
+TARGET_TASK=""
+SOURCE_TASK="template"
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --from)
+            if [ -z "$2" ]; then
+                echo "ERROR: --from requires a source task name"
+                usage
+                exit 1
+            fi
+            SOURCE_TASK="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "ERROR: Unknown option: $1"
+            usage
+            exit 1
+            ;;
+        *)
+            if [ -z "$TARGET_TASK" ]; then
+                TARGET_TASK="$1"
+            else
+                echo "ERROR: Multiple task names provided"
+                usage
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate arguments
+if [ -z "$TARGET_TASK" ]; then
+    echo "ERROR: Task name is required"
+    usage
+    exit 1
+fi
+
+# Get repo root
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+TASKS_ROOT="$REPO_ROOT/tasks"
+
+SOURCE_DIR="$TASKS_ROOT/$SOURCE_TASK"
+TARGET_DIR="$TASKS_ROOT/$TARGET_TASK"
+
+# Check if source exists
+if [ ! -d "$SOURCE_DIR" ]; then
+    echo "ERROR: Source directory not found: $SOURCE_DIR"
+    exit 1
+fi
+
+# Check if target already exists
+if [ -d "$TARGET_DIR" ]; then
+    echo "ERROR: Task already exists: $TARGET_DIR"
+    exit 1
+fi
+
+# Create target directory and copy
+mkdir -p "$TARGET_DIR"
+cp -r "$SOURCE_DIR"/* "$TARGET_DIR/"
+
+echo "Created: $TARGET_DIR"
