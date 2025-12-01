@@ -1,0 +1,81 @@
+#!/bin/bash
+
+set -e
+
+usage() {
+    cat << EOF
+
+Usage: script/run-task [TASK_NAME]
+
+Run tests for a coding contest task.
+
+Arguments:
+  TASK_NAME    Name of the task (e.g., "1A" or "tasks/1A")
+               If omitted, uses current working directory
+
+Examples:
+  run 1A              # Run tests for tasks/1A
+  run tasks/1A        # Same as above
+  run                 # Run tests in current directory
+
+EOF
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    usage
+    exit 0
+fi
+
+# Get the directory where the script is located
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+TASKS_ROOT="$REPO_ROOT/tasks"
+
+# Determine solution directory
+if [ -n "$1" ]; then
+    # Path provided as argument
+    TASK_NAME="$1"
+    # Remove "tasks/" prefix if present
+    TASK_NAME="${TASK_NAME#tasks/}"
+
+    # Set solution directory
+    SOLUTION_DIR="$TASKS_ROOT/$TASK_NAME"
+else
+    # No path provided, use current working directory
+    SOLUTION_DIR="$(pwd)"
+
+    # Check if solution directory is under tasks folder
+    if [[ ! "$SOLUTION_DIR" =~ ^"$TASKS_ROOT" ]]; then
+        echo "ERROR: Current directory must be under $TASKS_ROOT"
+        usage
+        exit 1
+    fi
+fi
+
+if [ ! -d "$SOLUTION_DIR" ]; then
+    echo "ERROR: Directory not found: $SOLUTION_DIR"
+    usage
+    exit 1
+fi
+
+# Check if main_test.go exists
+if [ ! -f "$SOLUTION_DIR/main_test.go" ]; then
+    echo "ERROR: main_test.go not found in $SOLUTION_DIR"
+    usage
+    exit 1
+fi
+
+# Run tests
+cd "$SOLUTION_DIR"
+
+# Run tests and colorize output
+set +e
+go test -v . 2>&1 | sed -E \
+    -e "s/^=== RUN.*/$(printf '\033[36m')&$(printf '\033[0m')/" \
+    -e "s/^[[:space:]]*--- PASS.*/$(printf '\033[32m')&$(printf '\033[0m')/" \
+    -e "s/^[[:space:]]*--- FAIL.*/$(printf '\033[31m')&$(printf '\033[0m')/" \
+    -e "s/^[[:space:]]*RESULT:.*/$(printf '\033[34m')&$(printf '\033[0m')/" \
+    -e "s/^PASS$/$(printf '\033[32m')&$(printf '\033[0m')/" \
+    -e "s/^FAIL.*/$(printf '\033[31m')&$(printf '\033[0m')/" \
+    -e "s/^ok .*/$(printf '\033[32m')&$(printf '\033[0m')/"
+
+exit ${PIPESTATUS[0]}
