@@ -18,23 +18,16 @@ func solution(input []string) string {
 			dialValue += steps
 		}
 
-		dialValue = normalizeDialValue(dialValue)
+		dialValue %= 100
+		if dialValue < 0 {
+			dialValue += 100
+		} else if dialValue >= 100 {
+			dialValue -= 100
+		}
 		if dialValue == 0 {
 			result++
 		}
 	}
 
 	return cast.ToString(result)
-}
-
-func normalizeDialValue(value int) int {
-	for value < 0 {
-		value += 100
-	}
-
-	for value >= 100 {
-		value -= 100
-	}
-
-	return value
 }

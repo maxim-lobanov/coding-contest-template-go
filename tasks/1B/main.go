@@ -11,33 +11,29 @@ func solution(input []string) string {
 	for _, line := range input {
 		dir := line[0]
 		steps := cast.ParseInt(line[1:])
-		side := 1
+		sign := 1
 		if dir == 'L' {
-			side = -1
+			sign = -1
 		}
 
-		newDialValue, rotations := rotate(dialValue, side, steps)
+		if steps >= 100 {
+			result += steps / 100
+			steps = steps % 100
+		}
+		newDialValue := dialValue + sign*steps
+		if newDialValue < 0 {
+			newDialValue += 100
+			if dialValue > 0 {
+				result++
+			}
+		} else if newDialValue >= 100 {
+			newDialValue -= 100
+			result++
+		} else if newDialValue == 0 {
+			result++
+		}
 		dialValue = newDialValue
-		result += rotations
 	}
 
 	return cast.ToString(result)
-}
-
-func rotate(current, side, steps int) (int, int) {
-	localResult := 0
-
-	for i := 0; i < steps; i++ {
-		current += side
-		if current < 0 {
-			current = 99
-		} else if current >= 100 {
-			current = 0
-			localResult++
-		} else if current == 0 {
-			localResult++
-		}
-	}
-
-	return current, localResult
 }
