@@ -26,6 +26,18 @@ func Reduce[T any, U any](input []T, initial U, accumulator func(U, T) U) U {
 	return result
 }
 
+func Unique[T comparable](input []T) []T {
+	seen := make(map[T]struct{})
+	var result []T
+	for _, item := range input {
+		if _, ok := seen[item]; !ok {
+			seen[item] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
 func Any[T any](input []T, predicate func(T) bool) bool {
 	for _, item := range input {
 		if predicate(item) {
