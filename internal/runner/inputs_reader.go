@@ -24,6 +24,7 @@ func readMainInputFile(solutionFolder string) ([]string, error) {
 	}
 
 	inputLines := strings.Split(string(inputFileRaw), "\n")
+	inputLines = normalizeInputLines(inputLines)
 
 	return inputLines, nil
 }
@@ -62,7 +63,24 @@ func readTestFile(baseTestFile string) ([]string, string, error) {
 	}
 
 	testInputLines := strings.Split(string(testInputRaw), "\n")
+	testInputLines = normalizeInputLines(testInputLines)
 	testOutputLine := strings.TrimSpace(string(testOutputRaw))
 
 	return testInputLines, testOutputLine, nil
+}
+
+func normalizeInputLines(inputLines []string) []string {
+	// Trim blank lines from the beginning
+	start := 0
+	for start < len(inputLines) && strings.TrimSpace(inputLines[start]) == "" {
+		start++
+	}
+
+	// Trim blank lines from the end
+	end := len(inputLines)
+	for end > start && strings.TrimSpace(inputLines[end-1]) == "" {
+		end--
+	}
+
+	return inputLines[start:end]
 }
