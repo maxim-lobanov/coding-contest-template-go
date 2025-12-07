@@ -40,9 +40,36 @@ func ParseFloat(s string) float64 {
 
 func ParseIntArray(s string) []int {
 	parts := strings.Split(s, " ")
-	result := make([]int, len(parts))
-	for i, part := range parts {
-		result[i] = ParseInt(part)
+	result := make([]int, 0, len(parts))
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			result = append(result, ParseInt(part))
+		}
+	}
+
+	return result
+}
+
+func ParseStringArray(s string) []string {
+	parts := strings.Split(s, " ")
+	result := make([]string, 0, len(parts))
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			result = append(result, part)
+		}
+	}
+
+	return result
+}
+
+func ParseCharMatrix(lines []string) [][]rune {
+	result := make([][]rune, len(lines))
+	for i, line := range lines {
+		result[i] = []rune(line)
 	}
 
 	return result
