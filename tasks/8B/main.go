@@ -5,15 +5,15 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/maxim-lobanov/coding-contest-template-go/internal/algo"
 	"github.com/maxim-lobanov/coding-contest-template-go/internal/cast"
-	"github.com/maxim-lobanov/coding-contest-template-go/internal/geometry"
 )
 
 func solution(input []string) string {
-	allPoints := make([]geometry.Point3D, len(input))
+	allPoints := make([]algo.Point3D, len(input))
 	for i := 0; i < len(input); i++ {
 		parts := strings.Split(input[i], ",")
-		allPoints[i] = geometry.Point3D{
+		allPoints[i] = algo.Point3D{
 			X: cast.ParseInt(parts[0]),
 			Y: cast.ParseInt(parts[1]),
 			Z: cast.ParseInt(parts[2]),
@@ -27,7 +27,7 @@ func solution(input []string) string {
 	return cast.ToString(result)
 }
 
-func getSortedConnections(allPoints []geometry.Point3D) [][2]int {
+func getSortedConnections(allPoints []algo.Point3D) [][2]int {
 	allPairs := make([][2]int, 0)
 	for i := 0; i < len(allPoints); i++ {
 		for j := i + 1; j < len(allPoints); j++ {

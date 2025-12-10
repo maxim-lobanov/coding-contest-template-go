@@ -3,14 +3,14 @@ package main
 import (
 	"strings"
 
+	"github.com/maxim-lobanov/coding-contest-template-go/internal/algo"
 	"github.com/maxim-lobanov/coding-contest-template-go/internal/cast"
-	"github.com/maxim-lobanov/coding-contest-template-go/internal/linq"
 )
 
 func solution(input []string) string {
 	result := 0
 	for i := 0; i < len(input); i++ {
-		bank := linq.Map(strings.Split(input[i], ""), func(s string) int { return cast.ParseInt(s) })
+		bank := algo.Map(strings.Split(input[i], ""), func(s string) int { return cast.ParseInt(s) })
 		result += solveLine(bank)
 	}
 	return cast.ToString(result)
