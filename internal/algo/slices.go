@@ -1,4 +1,4 @@
-package linq
+package algo
 
 func Filter[T any](input []T, predicate func(T) bool) []T {
 	var result []T
