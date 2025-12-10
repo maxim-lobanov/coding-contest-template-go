@@ -1,4 +1,4 @@
-package ds
+package algo
 
 type Queue[T any] struct {
 	list []T
