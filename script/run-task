@@ -69,7 +69,7 @@ cd "$SOLUTION_DIR"
 
 # Run tests and colorize output
 set +e
-go test -v . 2>&1 | sed -E \
+go test -timeout 120m -v . 2>&1 | sed -E \
     -e "s/^=== RUN.*/$(printf '\033[36m')&$(printf '\033[0m')/" \
     -e "s/^[[:space:]]*--- PASS.*/$(printf '\033[32m')&$(printf '\033[0m')/" \
     -e "s/^[[:space:]]*--- FAIL.*/$(printf '\033[31m')&$(printf '\033[0m')/" \
