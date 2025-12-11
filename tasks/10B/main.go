@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"math"
-	"slices"
 	"strings"
 
 	"github.com/maxim-lobanov/coding-contest-template-go/internal/algo"
@@ -12,8 +10,7 @@ import (
 
 func solution(input []string) string {
 	totalResult := 0
-	for index, line := range input {
-		fmt.Printf("%d/%d\n", index, len(input))
+	for _, line := range input {
 		result := solveSingleCase(line)
 		totalResult += result
 	}
@@ -21,35 +18,40 @@ func solution(input []string) string {
 }
 
 func solveSingleCase(input string) int {
-	requiredPattern, availableButtons := parseinputLine(input)
-
+	requiredPattern, availableButtons := parseInputLine(input)
 	numVars := len(availableButtons)
-	equations := make([][]int, len(requiredPattern))
-	for i := 0; i < len(requiredPattern); i++ {
-		equations[i] = make([]int, numVars+1)
+	numEqs := len(requiredPattern)
+
+	// Build coefficient matrix
+	matrix := make([][]float64, numEqs)
+	for i := 0; i < numEqs; i++ {
+		matrix[i] = make([]float64, numVars)
 		for j := 0; j < numVars; j++ {
-			if slices.Contains(availableButtons[j], i) {
-				equations[i][j] = 1
+			for _, idx := range availableButtons[j] {
+				if idx == i {
+					matrix[i][j] = 1
+				}
 			}
 		}
-		equations[i][numVars] = requiredPattern[i]
 	}
 
-	result, found := solveLinearSystem(equations, numVars)
-	if !found {
-		panic("solution is not found")
+	b := make([]float64, numEqs)
+	for i := 0; i < numEqs; i++ {
+		b[i] = float64(requiredPattern[i])
 	}
 
-	return result
+	solution := solveSystem(matrix, b)
+
+	total := 0
+	for _, v := range solution {
+		total += v
+	}
+
+	return total
 }
 
-func parseinputLine(input string) ([]int, [][]int) {
-	if !strings.HasPrefix(input, "[") || !strings.HasSuffix(input, "}") {
-		panic(fmt.Sprintf("invalid input line: %s", input))
-	}
-
+func parseInputLine(input string) ([]int, [][]int) {
 	parts := strings.Split(input, "]")
-
 	parts = strings.Split(parts[1], "{")
 	buttonsRaw := strings.Split(strings.TrimSpace(parts[0]), " ")
 
@@ -60,10 +62,6 @@ func parseinputLine(input string) ([]int, [][]int) {
 	availableButtons := [][]int{}
 	for _, buttonRawPart := range buttonsRaw {
 		buttonRawPart = strings.TrimSpace(buttonRawPart)
-		if !strings.HasPrefix(buttonRawPart, "(") || !strings.HasSuffix(buttonRawPart, ")") {
-			panic(fmt.Sprintf("invalid option: %s", buttonRawPart))
-		}
-
 		buttonRawPart = strings.TrimPrefix(buttonRawPart, "(")
 		buttonRawPart = strings.TrimSuffix(buttonRawPart, ")")
 		optionRawList := strings.Split(buttonRawPart, ",")
@@ -74,109 +72,329 @@ func parseinputLine(input string) ([]int, [][]int) {
 	return requiredPattern, availableButtons
 }
 
-func solveLinearSystem(equations [][]int, numVars int) (int, bool) {
-	coefficients := make([][]int, len(equations))
-	rightSide := make([]int, len(equations))
+func solveSystem(A [][]float64, b []float64) []int {
+	// For small systems, try a more direct approach with optimization
+	m := len(A[0])
 
-	for i, eq := range equations {
-		coefficients[i] = eq[:numVars]
-		rightSide[i] = eq[numVars]
+	// Try branch and bound / search for minimal solution
+	if m <= 15 { // Small enough for smart enumeration
+		return solveBranchAndBound(A, b)
 	}
 
-	current := make([]int, numVars)
-	currentSums := make([]int, len(equations))
-	minSum := math.MaxInt
-	found := false
+	return solveGaussian(A, b)
+}
 
-	var backtrack func(varIndex, currentSum int)
-	backtrack = func(varIndex, currentSum int) {
-		if currentSum >= minSum {
-			return
+func solveGaussian(A [][]float64, b []float64) []int {
+	n := len(A)
+	m := len(A[0])
+
+	// Augmented matrix
+	aug := make([][]float64, n)
+	for i := 0; i < n; i++ {
+		aug[i] = make([]float64, m+1)
+		for j := 0; j < m; j++ {
+			aug[i][j] = A[i][j]
 		}
+		aug[i][m] = b[i]
+	}
 
-		if varIndex == numVars {
-			valid := true
-			for i := 0; i < len(equations); i++ {
-				if currentSums[i] != rightSide[i] {
-					valid = false
+	// RREF
+	lead := 0
+	for r := 0; r < n; r++ {
+		if lead >= m {
+			break
+		}
+		i := r
+		for math.Abs(aug[i][lead]) < 1e-10 {
+			i++
+			if i == n {
+				i = r
+				lead++
+				if lead == m {
 					break
 				}
 			}
+		}
+		if lead >= m {
+			break
+		}
+
+		aug[i], aug[r] = aug[r], aug[i]
+		lv := aug[r][lead]
+		for j := 0; j <= m; j++ {
+			aug[r][j] /= lv
+		}
+		for i := 0; i < n; i++ {
+			if i != r {
+				lv = aug[i][lead]
+				for j := 0; j <= m; j++ {
+					aug[i][j] -= lv * aug[r][j]
+				}
+			}
+		}
+		lead++
+	}
+
+	// Extract solution
+	solution := make([]float64, m)
+
+	// Identify pivot columns
+	pivotCol := make([]int, n)
+	basicVar := make(map[int]int) // maps variable index to its pivot row
+	for i := 0; i < n; i++ {
+		pivotCol[i] = -1
+	}
+
+	for row := 0; row < n; row++ {
+		// Find the leading 1 in this row (pivot)
+		for col := 0; col < m; col++ {
+			if math.Abs(aug[row][col]-1.0) < 1e-9 {
+				// Check if this is truly a pivot (only non-zero in this column)
+				isPivot := true
+				for otherRow := 0; otherRow < n; otherRow++ {
+					if otherRow != row && math.Abs(aug[otherRow][col]) > 1e-9 {
+						isPivot = false
+						break
+					}
+				}
+				if isPivot {
+					pivotCol[row] = col
+					basicVar[col] = row
+					break
+				}
+			}
+		}
+	}
+
+	// Identify free variables (non-basic variables)
+	freeVars := []int{}
+	for col := 0; col < m; col++ {
+		if _, isBasic := basicVar[col]; !isBasic {
+			freeVars = append(freeVars, col)
+		}
+	}
+
+	// If there are free variables, we need to find values that keep all basic vars non-negative
+	// and minimize the total sum
+	if len(freeVars) > 0 {
+		// For each free variable, compute the minimum value needed to keep all basic vars >= 0
+		for _, freeVar := range freeVars {
+			minVal := 0.0
+			for basicVarIdx, row := range basicVar {
+				coeff := aug[row][freeVar]
+				rhs := aug[row][m]
+				// Basic var = rhs - coeff * freeVar
+				// We need: rhs - coeff * freeVar >= 0
+				// If coeff > 0: freeVar <= rhs/coeff (no lower bound from this)
+				// If coeff < 0: freeVar >= rhs/coeff (provides lower bound)
+				if coeff < -1e-9 {
+					requiredMin := rhs / coeff
+					if requiredMin > minVal {
+						minVal = requiredMin
+					}
+				}
+				_ = basicVarIdx // use it
+			}
+			solution[freeVar] = math.Ceil(minVal) // Round up to ensure non-negativity
+		}
+	}
+
+	// Now compute basic variables
+	for basicVarIdx, row := range basicVar {
+		val := aug[row][m]
+		for _, freeVar := range freeVars {
+			val -= aug[row][freeVar] * solution[freeVar]
+		}
+		solution[basicVarIdx] = math.Round(val)
+	}
+
+	// Convert to int
+	intSolution := make([]int, m)
+	for i := 0; i < m; i++ {
+		intSolution[i] = int(solution[i])
+	}
+
+	return intSolution
+}
+
+func solveBranchAndBound(A [][]float64, b []float64) []int {
+	numEqs := len(A)
+	numVars := len(A[0])
+
+	// First do Gaussian elimination to identify basic and free variables
+	aug := make([][]float64, numEqs)
+	for i := 0; i < numEqs; i++ {
+		aug[i] = make([]float64, numVars+1)
+		for j := 0; j < numVars; j++ {
+			aug[i][j] = A[i][j]
+		}
+		aug[i][numVars] = b[i]
+	}
+
+	// RREF
+	lead := 0
+	for r := 0; r < numEqs; r++ {
+		if lead >= numVars {
+			break
+		}
+		i := r
+		for math.Abs(aug[i][lead]) < 1e-10 {
+			i++
+			if i == numEqs {
+				i = r
+				lead++
+				if lead == numVars {
+					break
+				}
+			}
+		}
+		if lead == numVars {
+			break
+		}
+		aug[i], aug[r] = aug[r], aug[i]
+
+		if math.Abs(aug[r][lead]) > 1e-10 {
+			div := aug[r][lead]
+			for j := 0; j <= numVars; j++ {
+				aug[r][j] /= div
+			}
+		}
+
+		for i := 0; i < numEqs; i++ {
+			if i != r {
+				mult := aug[i][lead]
+				for j := 0; j <= numVars; j++ {
+					aug[i][j] -= mult * aug[r][j]
+				}
+			}
+		}
+		lead++
+	}
+
+	// Identify pivot columns (basic variables)
+	basicVar := make(map[int]int) // maps variable index to its pivot row
+	for row := 0; row < numEqs; row++ {
+		for col := 0; col < numVars; col++ {
+			if math.Abs(aug[row][col]-1.0) < 1e-9 {
+				isPivot := true
+				for otherRow := 0; otherRow < numEqs; otherRow++ {
+					if otherRow != row && math.Abs(aug[otherRow][col]) > 1e-9 {
+						isPivot = false
+						break
+					}
+				}
+				if isPivot {
+					basicVar[col] = row
+					break
+				}
+			}
+		}
+	}
+
+	// Identify free variables
+	freeVars := []int{}
+	for col := 0; col < numVars; col++ {
+		if _, isBasic := basicVar[col]; !isBasic {
+			freeVars = append(freeVars, col)
+		}
+	}
+
+	// Now try different combinations of free variable values
+	bestSolution := make([]int, numVars)
+	bestSum := 1000000
+
+	// Compute upper bound for free variables based on the system
+	maxValue := 0
+	for i := 0; i < numEqs; i++ {
+		if int(math.Ceil(aug[i][numVars])) > maxValue {
+			maxValue = int(math.Ceil(aug[i][numVars]))
+		}
+	}
+	if maxValue < 30 {
+		maxValue = 30 //  Minimum reasonable search space
+	}
+
+	// Add buffer, but limit total search space
+	searchBudget := 100000 // Maximum combinations to try
+	if len(freeVars) > 0 {
+		maxPerVar := int(math.Pow(float64(searchBudget), 1.0/float64(len(freeVars))))
+		if maxPerVar > maxValue*3 {
+			maxValue = maxValue * 3
+		} else {
+			maxValue = maxPerVar
+		}
+	}
+
+	var tryFreeVars func(freeIdx int, freeAssignment []int)
+	tryFreeVars = func(freeIdx int, freeAssignment []int) {
+		if freeIdx == len(freeVars) {
+			// Compute basic variables
+			solution := make([]float64, numVars)
+			for i, val := range freeAssignment {
+				solution[freeVars[i]] = float64(val)
+			}
+
+			valid := true
+			currentSum := 0
+			for basicVarIdx, row := range basicVar {
+				val := aug[row][numVars]
+				for _, freeVar := range freeVars {
+					val -= aug[row][freeVar] * solution[freeVar]
+				}
+				if val < -0.5 {
+					valid = false
+					break
+				}
+				roundedVal := math.Round(val)
+				if math.Abs(val-roundedVal) > 1e-6 {
+					valid = false
+					break
+				}
+				solution[basicVarIdx] = roundedVal
+				currentSum += int(roundedVal)
+			}
+
 			if valid {
-				found = true
-				if currentSum < minSum {
-					minSum = currentSum
+				// Add free variable values to sum
+				for _, v := range freeAssignment {
+					currentSum += v
+				}
+
+				if currentSum < bestSum {
+					bestSum = currentSum
+					for i := range solution {
+						bestSolution[i] = int(solution[i])
+					}
 				}
 			}
 			return
 		}
 
-		maxVal := getMaxValue(varIndex, currentSums, coefficients, rightSide)
-		if maxVal < 0 {
-			return
-		}
-
-		lowerBound := 0
-		for i := 0; i < len(equations); i++ {
-			remaining := rightSide[i] - currentSums[i]
-			if remaining > lowerBound {
-				lowerBound = remaining
+		// Try values with pruning
+		for val := 0; val <= maxValue; val++ {
+			// Prune: if we already have too large a sum from free vars alone
+			currentFreeSum := val
+			for i := 0; i < freeIdx; i++ {
+				currentFreeSum += freeAssignment[i]
 			}
-		}
-		if varIndex < numVars && lowerBound > 0 {
-			lowerBound = lowerBound / (numVars - varIndex)
-		}
-		if currentSum+lowerBound >= minSum {
-			return
-		}
-
-		for val := 0; val <= maxVal; val++ {
-			current[varIndex] = val
-			for i := 0; i < len(equations); i++ {
-				currentSums[i] += coefficients[i][varIndex] * val
+			if currentFreeSum >= bestSum {
+				break // Prune this branch
 			}
 
-			backtrack(varIndex+1, currentSum+val)
-
-			for i := 0; i < len(equations); i++ {
-				currentSums[i] -= coefficients[i][varIndex] * val
-			}
-		}
-		current[varIndex] = 0
-	}
-
-	backtrack(0, 0)
-
-	if !found {
-		return 0, false
-	}
-	return minSum, true
-}
-
-func getMaxValue(varIndex int, currentSums []int, coefficients [][]int, rightSide []int) int {
-	maxVal := math.MaxInt
-	hasConstraint := false
-
-	for i := 0; i < len(coefficients); i++ {
-		if coefficients[i][varIndex] > 0 {
-			remaining := rightSide[i] - currentSums[i]
-			if remaining < 0 {
-				return -1
-			}
-			possible := remaining / coefficients[i][varIndex]
-			if possible < maxVal {
-				maxVal = possible
-				hasConstraint = true
-			}
+			freeAssignment[freeIdx] = val
+			tryFreeVars(freeIdx+1, freeAssignment)
 		}
 	}
 
-	if !hasConstraint {
-		maxVal = 0
-		for i := 0; i < len(rightSide); i++ {
-			maxVal += rightSide[i]
+	if len(freeVars) > 0 {
+		freeAssignment := make([]int, len(freeVars))
+		tryFreeVars(0, freeAssignment)
+	} else {
+		// No free variables, just extract the solution
+		for basicVarIdx, row := range basicVar {
+			bestSolution[basicVarIdx] = int(math.Round(aug[row][numVars]))
 		}
 	}
 
-	return maxVal
+	return bestSolution
 }
