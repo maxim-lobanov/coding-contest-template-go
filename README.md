@@ -5,8 +5,8 @@ A Go template for competitive programming and coding contests. Provides a struct
 ## Quick Start
 
 1. Create a new task
-    - `script/create-task A1` -> Creating task with name `tasks/A1` from `tasks/template`
-    - `script/create-task A2 --from A1` - Creating task with name `tasks/A2` from `tasks/A1`
+    - `script/create-task 1A` -> Creating task with name `tasks/1A` from `tasks/template`
+    - `script/create-task 1B --from 1A` - Creating task with name `tasks/1B` from `tasks/1A`
 2. Fill input to `main.in`
 3. Fill samples to `sample_1.in` and `sample_1.out`
     - You can add more samples if necessary: `sample_2.in / sample_2.out`, `sample_N.in / sample_N.out`, etc
